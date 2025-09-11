@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password:string, userData: any) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: { user: User | null; session: Session | null; } | null; error: AuthError | null; }>;
   signOut: () => Promise<void>;
 }
 
@@ -48,39 +48,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // First, sign up the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData
+          data: {
+            fullName: userData.fullName,
+            role: 'owner', // Set role in metadata for the trigger
+          }
         }
       });
 
-      if (error) {
-        console.error('Signup error:', error);
-        return { error };
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        return { error: signUpError };
+      }
+      
+      if (!authData.user) {
+        const err = new Error("Signup succeeded but no user data was returned.");
+        console.error(err);
+        return { error: err };
       }
 
-      // If signup is successful and user is created
-      if (data.user && !error) {
-        // Create restaurant entry
-        const { error: restaurantError } = await supabase
-          .from('restaurants')
-          .insert([{
-            name: userData.restaurantName,
-            slug: userData.restaurantSlug,
-            owner_id: data.user.id,
-            phone: userData.phone,
-            address: userData.address
-          }]);
+      // Second, create the restaurant entry
+      const { data: newRestaurant, error: restaurantError } = await supabase
+        .from('restaurants')
+        .insert([{
+          name: userData.restaurantName,
+          slug: userData.restaurantSlug,
+          owner_id: authData.user.id,
+          phone: userData.phone,
+          address: userData.address
+        }])
+        .select('id')
+        .single();
 
-        if (restaurantError) {
-          console.error('Restaurant creation error:', restaurantError);
-          return { error: restaurantError };
-        }
+      if (restaurantError || !newRestaurant) {
+        console.error('Restaurant creation error:', restaurantError);
+        // Attempt to clean up the created user if restaurant creation fails
+        // This is advanced, for now, we'll just return the error.
+        return { error: restaurantError || new Error("Failed to create restaurant and get its ID.") };
+      }
+
+      // Third, update the user's profile (created by a trigger) with the new restaurant_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ restaurant_id: newRestaurant.id })
+        .eq('id', authData.user.id);
+
+      if (profileError) {
+        // This is not a fatal error for the owner's login, but it's good to log it.
+        console.error('Profile update error after signup:', profileError);
       }
 
       return { error: null };
+
     } catch (error) {
       console.error('Unexpected signup error:', error);
       return { error };
@@ -88,21 +111,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Signin error:', error);
-      }
-
-      return { error };
-    } catch (error) {
-      console.error('Unexpected signin error:', error);
-      return { error };
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { data, error };
   };
 
   const signOut = async () => {

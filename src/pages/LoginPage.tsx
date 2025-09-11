@@ -20,49 +20,72 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { data: authData, error } = await signIn(email, password);
 
-      if (error) {
+      if (error || !authData?.user) {
         toast({
           type: 'error',
           title: 'Login Failed',
-          description: error.message || 'Invalid email or password'
+          description: error?.message || 'Invalid email or password.',
         });
         setLoading(false);
         return;
       }
 
-      // Get user's restaurant
-      const { data: restaurants, error: restaurantError } = await supabase
+      let restaurantSlug: string | null = null;
+
+      // 1. Check if the user is an owner of a restaurant
+      const { data: ownerRestaurant } = await supabase
         .from('restaurants')
         .select('slug')
-        .limit(1)
+        .eq('owner_id', authData.user.id)
         .single();
 
-      if (restaurantError || !restaurants) {
+      if (ownerRestaurant) {
+        restaurantSlug = ownerRestaurant.slug;
+      } else {
+        // 2. If not an owner, check if they are a staff member via their profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('restaurant_id')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profile && profile.restaurant_id) {
+          // 3. Get the slug of the restaurant from their profile
+          const { data: staffRestaurant } = await supabase
+            .from('restaurants')
+            .select('slug')
+            .eq('id', profile.restaurant_id)
+            .single();
+
+          if (staffRestaurant) {
+            restaurantSlug = staffRestaurant.slug;
+          }
+        }
+      }
+
+      if (restaurantSlug) {
+        toast({
+          type: 'success',
+          title: 'Welcome Back!',
+          description: 'Successfully signed in.',
+        });
+        navigate(`/admin/${restaurantSlug}`);
+      } else {
         toast({
           type: 'error',
           title: 'Restaurant Not Found',
-          description: 'No restaurant associated with this account'
+          description: 'No restaurant is associated with this account. Please contact support.',
         });
-        setLoading(false);
-        return;
+        await supabase.auth.signOut();
       }
-
-      toast({
-        type: 'success',
-        title: 'Welcome Back!',
-        description: 'Successfully signed in'
-      });
-
-      // Redirect to admin dashboard
-      navigate(`/admin/${restaurants.slug}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       toast({
         type: 'error',
         title: 'Login Failed',
-        description: 'An unexpected error occurred'
+        description: error.message || 'An unexpected error occurred.',
       });
     } finally {
       setLoading(false);
