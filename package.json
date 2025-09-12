@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.2.3",
     "@faker-js/faker": "^10.0.0",
     "@supabase/supabase-js": "^2.57.3",
     "axios": "^1.9.0",
