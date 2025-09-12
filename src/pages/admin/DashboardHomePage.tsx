@@ -6,10 +6,14 @@ import {
   TrendingUp,
   Clock,
   DollarSign,
-  Eye
+  Eye,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toaster';
+import { DateRange } from 'react-day-picker';
+import { addDays, format } from 'date-fns';
+import { DatePickerWithRange } from '../../components/admin/DatePickerWithRange';
 
 const DashboardHomePage: React.FC = () => {
   const [stats, setStats] = useState({
@@ -18,14 +22,23 @@ const DashboardHomePage: React.FC = () => {
     activeOrders: 0,
     avgOrderValue: 0
   });
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { restaurantSlug } = useParams();
   const { toast } = useToast();
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
 
   useEffect(() => {
     fetchDashboardData();
   }, [restaurantSlug]);
+
+  useEffect(() => {
+    filterDataByDate();
+  }, [date, allOrders]);
 
   const fetchDashboardData = async () => {
     if (!restaurantSlug) return;
@@ -44,34 +57,53 @@ const DashboardHomePage: React.FC = () => {
 
       const { data: orders, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, tables(table_number)')
         .eq('restaurant_id', restaurant.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      setAllOrders(orders || []);
 
-      if (orders) {
-        const totalOrders = orders.length;
-        const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-        const activeOrders = orders.filter(order => 
-          ['pending', 'in_preparation', 'ready'].includes(order.status)
-        ).length;
-        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-        setStats({
-          totalOrders,
-          totalRevenue,
-          activeOrders,
-          avgOrderValue
-        });
-
-        setRecentOrders(orders.slice(0, 5));
-      }
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
       toast({ type: 'error', title: 'Fetch Error', description: 'Could not load dashboard data.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filterDataByDate = () => {
+    if (!date?.from || !date?.to) {
+      processOrders(allOrders);
+      return;
+    }
+
+    const filtered = allOrders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= date.from! && orderDate <= date.to!;
+    });
+    
+    processOrders(filtered);
+  };
+
+  const processOrders = (orders: any[]) => {
+    if (orders) {
+      const totalOrders = orders.length;
+      const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+      const activeOrders = orders.filter(order => 
+        ['pending', 'in_preparation', 'ready'].includes(order.status)
+      ).length;
+      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+      setStats({
+        totalOrders,
+        totalRevenue,
+        activeOrders,
+        avgOrderValue
+      });
+
+      setRecentOrders(orders.slice(0, 5));
     }
   };
 
@@ -96,6 +128,10 @@ const DashboardHomePage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">Dashboard</h2>
+        <DatePickerWithRange date={date} setDate={setDate} />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { icon: ShoppingBag, title: 'Total Orders', value: stats.totalOrders, color: 'blue' },
@@ -155,7 +191,7 @@ const DashboardHomePage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{order.total.toFixed(2)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${getStatusColor(order.status)}`}>
-                      {order.status.replace('_', ' ')}
+                      {order.status.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.created_at).toLocaleTimeString()}</td>
@@ -170,7 +206,7 @@ const DashboardHomePage: React.FC = () => {
           </table>
           {recentOrders.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500">No recent orders found.</p>
+              <p className="text-gray-500">No recent orders found for the selected date range.</p>
             </div>
           )}
         </div>

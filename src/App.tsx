@@ -10,6 +10,8 @@ import KitchenDashboard from './pages/KitchenDashboard';
 import BillPage from './pages/BillPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import StaffLoginPage from './pages/StaffLoginPage';
+import StaffSignUpPage from './pages/StaffSignUpPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
@@ -23,6 +25,8 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/staff/login" element={<StaffLoginPage />} />
+              <Route path="/staff/signup" element={<StaffSignUpPage />} />
               <Route path="/restaurant/:slug/menu/:table" element={<QRMenuPage />} />
               <Route path="/restaurant/:slug/bill/:orderId" element={<BillPage />} />
 

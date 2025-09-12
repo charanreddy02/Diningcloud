@@ -25,8 +25,17 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const { restaurantSlug } = useParams();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [isOpen, restaurantSlug]);
 
   useEffect(() => {
     if (item) {
@@ -41,18 +50,49 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
         image_url: item.image_url || ''
       });
     } else {
-      // Reset form for new item
-      setFormData({
-        name: '', description: '', price: 0, category: '', available: true,
-        variants: [], add_ons: [], image_url: ''
-      });
+      resetForm();
     }
     setImageFile(null);
+    setShowNewCategoryInput(false);
+    setNewCategory('');
   }, [item, isOpen]);
+
+  const resetForm = () => {
+    setFormData({
+      name: '', description: '', price: 0, category: '', available: true,
+      variants: [], add_ons: [], image_url: ''
+    });
+  };
+
+  const fetchCategories = async () => {
+    if (!restaurantSlug) return;
+    try {
+      const { data: restaurant } = await supabase.from('restaurants').select('id').eq('slug', restaurantSlug).single();
+      if (!restaurant) return;
+
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('category')
+        .eq('restaurant_id', restaurant.id);
+      
+      if (error) throw error;
+      
+      const uniqueCategories = [...new Set(data.map(i => i.category).filter(Boolean))];
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error("Failed to fetch categories", error);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'category' && value === 'add_new') {
+      setShowNewCategoryInput(true);
+      setFormData(prev => ({ ...prev, category: '' }));
+    } else {
+      setShowNewCategoryInput(false);
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubItemChange = (type: 'variants' | 'add_ons', index: number, field: 'name' | 'price', value: string) => {
@@ -84,6 +124,17 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
       const { data: restaurant } = await supabase.from('restaurants').select('id').eq('slug', restaurantSlug).single();
       if (!restaurant) throw new Error("Restaurant not found");
 
+      let finalCategory = formData.category;
+      if (showNewCategoryInput && newCategory.trim()) {
+        finalCategory = newCategory.trim();
+      }
+
+      if (!finalCategory) {
+        toast({ type: 'error', title: 'Validation Error', description: 'Category is required.' });
+        setLoading(false);
+        return;
+      }
+
       let imageUrl = formData.image_url;
       if (imageFile) {
         setIsUploading(true);
@@ -92,7 +143,12 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
           .from('menu-images')
           .upload(fileName, imageFile);
         
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          if (uploadError.message.includes('Bucket not found')) {
+            throw new Error("Storage bucket 'menu-images' not found. Please create it in your Supabase dashboard.");
+          }
+          throw uploadError;
+        }
 
         const { data: urlData } = supabase.storage.from('menu-images').getPublicUrl(uploadData.path);
         imageUrl = urlData.publicUrl;
@@ -101,6 +157,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
 
       const dataToSave = {
         ...formData,
+        category: finalCategory,
         price: parseFloat(formData.price as any),
         restaurant_id: restaurant.id,
         image_url: imageUrl
@@ -135,19 +192,33 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
           <button onClick={onClose}><X /></button>
         </div>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Basic Info */}
           <input name="name" value={formData.name} onChange={handleChange} placeholder="Item Name" required className="w-full p-2 border rounded" />
           <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Description" className="w-full p-2 border rounded" />
           <div className="grid grid-cols-2 gap-4">
             <input name="price" type="number" step="0.01" value={formData.price} onChange={handleChange} placeholder="Price" required className="w-full p-2 border rounded" />
-            <input name="category" value={formData.category} onChange={handleChange} placeholder="Category" required className="w-full p-2 border rounded" />
+            
+            {!showNewCategoryInput ? (
+              <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded bg-white" required={!showNewCategoryInput}>
+                <option value="">Select Category</option>
+                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                <option value="add_new">-- Add New Category --</option>
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value)}
+                placeholder="New Category Name"
+                className="w-full p-2 border rounded"
+                required
+              />
+            )}
           </div>
           <label className="flex items-center gap-2">
             <input type="checkbox" name="available" checked={formData.available} onChange={e => setFormData(p => ({ ...p, available: e.target.checked }))} />
             Available for order
           </label>
 
-          {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
             <div className="mt-1 flex items-center gap-4">
@@ -162,7 +233,6 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ isOpen, onClose, onSave, it
             </div>
           </div>
 
-          {/* Variants & Add-ons */}
           {['variants', 'add_ons'].map(type => (
             <div key={type}>
               <h4 className="font-semibold capitalize">{type.replace('_', ' ')}</h4>

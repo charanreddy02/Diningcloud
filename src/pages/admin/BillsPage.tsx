@@ -2,18 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toaster';
+import { Search } from 'lucide-react';
 
 type Bill = any;
 
 const BillsPage: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>([]);
+  const [filteredBills, setFilteredBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const { restaurantSlug } = useParams();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchBills();
   }, [restaurantSlug]);
+
+  useEffect(() => {
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filteredData = bills.filter(item => {
+      return (
+        item.orders?.customer_name?.toLowerCase().includes(lowercasedFilter) ||
+        item.order_id.toLowerCase().includes(lowercasedFilter)
+      );
+    });
+    setFilteredBills(filteredData);
+  }, [searchTerm, bills]);
 
   const fetchBills = async () => {
     if (!restaurantSlug) return;
@@ -28,15 +42,18 @@ const BillsPage: React.FC = () => {
           *,
           orders (
             id,
-            customer_name
+            customer_name,
+            tables (
+              table_number
+            )
           )
         `)
-        // A bit tricky to filter by restaurant_id through a join with RLS.
-        // This relies on RLS on the `bills` and `orders` tables.
+        .eq('orders.restaurant_id', restaurant.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       setBills(data || []);
+      setFilteredBills(data || []);
     } catch (error: any) {
       toast({ type: 'error', title: 'Error', description: 'Failed to fetch bills.' });
     } finally {
@@ -61,7 +78,19 @@ const BillsPage: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Bills & Payments</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-900">Bills & Payments</h2>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name or ID..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+        </div>
+      </div>
       {loading ? (
         <div>Loading bills...</div>
       ) : (
@@ -77,12 +106,13 @@ const BillsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {bills.map(bill => (
+              {filteredBills.map(bill => (
                 <tr key={bill.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{bill.id.slice(0, 8)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div>Order #{bill.orders.id.slice(0, 8)}</div>
                     <div className="text-xs text-gray-500">{bill.orders.customer_name}</div>
+                    <div className="text-xs text-gray-500">Table: {bill.orders.tables?.table_number || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(bill.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{bill.total.toFixed(2)}</td>
@@ -100,7 +130,7 @@ const BillsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-          {bills.length === 0 && <div className="text-center py-10 text-gray-500">No bills found.</div>}
+          {filteredBills.length === 0 && <div className="text-center py-10 text-gray-500">No bills found.</div>}
         </div>
       )}
     </div>

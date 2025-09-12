@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toaster';
-import { Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Users } from 'lucide-react';
 
-const LoginPage = () => {
+const StaffLoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,21 +31,41 @@ const LoginPage = () => {
       }
 
       if (data.user) {
-        // Check user's role and restaurant association
+        // Check if user is staff and has restaurant assignment
         const { data: profile } = await supabase
           .from('profiles')
           .select('*, restaurants!inner(*)')
           .eq('id', data.user.id)
           .single();
 
-        if (profile?.restaurants) {
-          navigate(`/admin/${profile.restaurants.slug}`);
-        } else {
+        if (!profile?.restaurants) {
           toast({
             type: 'error',
             title: 'Access Denied',
-            description: 'No restaurant associated with this account.'
+            description: 'Please ask your restaurant owner to assign you to a restaurant dashboard.'
           });
+          return;
+        }
+
+        if (profile.role === 'owner') {
+          toast({
+            type: 'info',
+            title: 'Restaurant Owner',
+            description: 'Redirecting to owner dashboard...'
+          });
+          navigate(`/admin/${profile.restaurants.slug}`);
+        } else {
+          // Route based on staff role
+          switch (profile.role) {
+            case 'kitchen':
+              navigate(`/kitchen/${profile.restaurants.slug}`);
+              break;
+            case 'cashier':
+              navigate(`/pos/${profile.restaurants.slug}`);
+              break;
+            default:
+              navigate(`/admin/${profile.restaurants.slug}`);
+          }
         }
       }
     } catch (error: any) {
@@ -59,7 +80,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Back Button */}
         <Link 
@@ -73,13 +94,13 @@ const LoginPage = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">D</span>
+            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+              <Users className="text-white h-6 w-6" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">DineCloud</span>
+            <span className="text-2xl font-bold text-gray-900">Staff Portal</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your restaurant dashboard</p>
+          <p className="text-gray-600">Sign in to your staff dashboard</p>
         </div>
 
         {/* Login Form */}
@@ -97,7 +118,7 @@ const LoginPage = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                   placeholder="Enter your email"
                 />
               </div>
@@ -115,7 +136,7 @@ const LoginPage = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                   placeholder="Enter your password"
                 />
                 <button
@@ -131,7 +152,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </button>
@@ -140,15 +161,15 @@ const LoginPage = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-blue-600 hover:text-blue-700 font-semibold">
-                Sign up for free
+              <Link to="/staff/signup" className="text-purple-600 hover:text-purple-700 font-semibold">
+                Create staff account
               </Link>
             </p>
           </div>
 
           <div className="mt-4 text-center">
-            <Link to="/staff/login" className="text-sm text-gray-500 hover:text-gray-700">
-              Staff Member? Sign in here
+            <Link to="/login" className="text-sm text-gray-500 hover:text-gray-700">
+              Restaurant Owner? Sign in here
             </Link>
           </div>
         </div>
@@ -157,4 +178,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default StaffLoginPage;

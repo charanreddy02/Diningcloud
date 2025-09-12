@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toaster';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, UtensilsCrossed } from 'lucide-react';
 import MenuItemForm from '../../components/admin/MenuItemForm';
 import ConfirmDeleteDialog from '../../components/admin/ConfirmDeleteDialog';
 
@@ -68,18 +68,33 @@ const MenuPage: React.FC = () => {
   const handleDelete = async () => {
     if (!itemToDelete) return;
     try {
-      // First, delete image from storage if it exists
+      // First, safely attempt to delete image from storage if it exists
       if (itemToDelete.image_url) {
-        const path = new URL(itemToDelete.image_url).pathname.split('/').slice(3).join('/');
-        await supabase.storage.from('menu-images').remove([path]);
+        try {
+          const url = new URL(itemToDelete.image_url);
+          const pathParts = url.pathname.split('/');
+          const bucketName = 'menu-images';
+          const bucketIndex = pathParts.indexOf(bucketName);
+
+          if (bucketIndex !== -1 && bucketIndex + 1 < pathParts.length) {
+            const filePath = pathParts.slice(bucketIndex + 1).join('/');
+            if (filePath) {
+              await supabase.storage.from(bucketName).remove([filePath]);
+            }
+          }
+        } catch (e) {
+          console.error("Could not parse or delete image from storage, proceeding with DB deletion.", e);
+        }
       }
+
       // Then, delete the item from the database
       const { error } = await supabase.from('menu_items').delete().eq('id', itemToDelete.id);
       if (error) throw error;
+      
       toast({ type: 'success', title: 'Deleted', description: `${itemToDelete.name} has been deleted.` });
       fetchMenuItems();
-    } catch (error) {
-      toast({ type: 'error', title: 'Error', description: 'Failed to delete item.' });
+    } catch (error: any) {
+      toast({ type: 'error', title: 'Error', description: error.message || 'Failed to delete item.' });
     } finally {
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);

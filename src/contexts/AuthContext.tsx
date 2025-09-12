@@ -86,19 +86,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (restaurantError || !newRestaurant) {
         console.error('Restaurant creation error:', restaurantError);
-        // Attempt to clean up the created user if restaurant creation fails
-        // This is advanced, for now, we'll just return the error.
         return { error: restaurantError || new Error("Failed to create restaurant and get its ID.") };
       }
 
-      // Third, update the user's profile (created by a trigger) with the new restaurant_id
+      // Third, create a default branch for the new restaurant
+      const { error: branchError } = await supabase
+        .from('branches')
+        .insert([{
+            restaurant_id: newRestaurant.id,
+            name: 'Main Branch'
+        }]);
+
+      if (branchError) {
+          console.error('Default branch creation error:', branchError);
+          return { error: branchError };
+      }
+
+      // Fourth, update the user's profile (created by a trigger) with the new restaurant_id
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ restaurant_id: newRestaurant.id })
         .eq('id', authData.user.id);
 
       if (profileError) {
-        // This is not a fatal error for the owner's login, but it's good to log it.
         console.error('Profile update error after signup:', profileError);
       }
 

@@ -1,274 +1,350 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
-
 export interface Database {
   public: {
     Tables: {
       restaurants: {
         Row: {
-          id: string
-          name: string
-          slug: string
-          owner_id: string
-          phone?: string
-          address?: string
-          description?: string
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          slug: string;
+          owner_id: string;
+          phone: string;
+          address: string;
+          gstin?: string;
+          cgst_rate?: number;
+          sgst_rate?: number;
+          payment_enabled?: boolean;
+          upi_qr_code?: string;
+          bank_details?: string;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          slug: string
-          owner_id: string
-          phone?: string
-          address?: string
-          description?: string
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          slug: string;
+          owner_id: string;
+          phone: string;
+          address: string;
+          gstin?: string;
+          cgst_rate?: number;
+          sgst_rate?: number;
+          payment_enabled?: boolean;
+          upi_qr_code?: string;
+          bank_details?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          slug?: string
-          owner_id?: string
-          phone?: string
-          address?: string
-          description?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      branches: {
-        Row: {
-          id: string
-          restaurant_id: string
-          name: string
-          location?: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          restaurant_id: string
-          name: string
-          location?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          restaurant_id?: string
-          name?: string
-          location?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      tables: {
-        Row: {
-          id: string
-          branch_id: string
-          table_number: number
-          qr_code_url?: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          branch_id: string
-          table_number: number
-          qr_code_url?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          branch_id?: string
-          table_number?: number
-          qr_code_url?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      menu_items: {
-        Row: {
-          id: string
-          restaurant_id: string
-          category: string
-          name: string
-          description?: string
-          price: number
-          variants?: Json
-          add_ons?: Json
-          available: boolean
-          image_url?: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          restaurant_id: string
-          category: string
-          name: string
-          description?: string
-          price: number
-          variants?: Json
-          add_ons?: Json
-          available?: boolean
-          image_url?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          restaurant_id?: string
-          category?: string
-          name?: string
-          description?: string
-          price?: number
-          variants?: Json
-          add_ons?: Json
-          available?: boolean
-          image_url?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      orders: {
-        Row: {
-          id: string
-          restaurant_id: string
-          branch_id: string
-          table_id?: string
-          items: Json
-          total: number
-          status: string
-          source: string
-          customer_name?: string
-          customer_phone?: string
-          special_instructions?: string
-          created_at: string
-          updated_at: string
-          prepared_at?: string
-          served_at?: string
-          completed_at?: string
-        }
-        Insert: {
-          id?: string
-          restaurant_id: string
-          branch_id: string
-          table_id?: string
-          items: Json
-          total: number
-          status?: string
-          source?: string
-          customer_name?: string
-          customer_phone?: string
-          special_instructions?: string
-          created_at?: string
-          updated_at?: string
-          prepared_at?: string
-          served_at?: string
-          completed_at?: string
-        }
-        Update: {
-          id?: string
-          restaurant_id?: string
-          branch_id?: string
-          table_id?: string
-          items?: Json
-          total?: number
-          status?: string
-          source?: string
-          customer_name?: string
-          customer_phone?: string
-          special_instructions?: string
-          created_at?: string
-          updated_at?: string
-          prepared_at?: string
-          served_at?: string
-          completed_at?: string
-        }
-      }
-      bills: {
-        Row: {
-          id: string
-          order_id: string
-          total: number
-          status: string
-          pdf_url?: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          order_id: string
-          total: number
-          status?: string
-          pdf_url?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          order_id?: string
-          total?: number
-          status?: string
-          pdf_url?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          slug?: string;
+          owner_id?: string;
+          phone?: string;
+          address?: string;
+          gstin?: string;
+          cgst_rate?: number;
+          sgst_rate?: number;
+          payment_enabled?: boolean;
+          upi_qr_code?: string;
+          bank_details?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       profiles: {
         Row: {
-          id: string
-          email: string
-          full_name?: string
-          role: string
-          restaurant_id?: string
-          branch_id?: string
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          full_name: string;
+          role: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+          restaurant_id?: string;
+          created_at: string;
+        };
         Insert: {
-          id: string
-          email: string
-          full_name?: string
-          role?: string
-          restaurant_id?: string
-          branch_id?: string
-          created_at?: string
-          updated_at?: string
-        }
+          id: string;
+          full_name: string;
+          role: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+          restaurant_id?: string;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          email?: string
-          full_name?: string
-          role?: string
-          restaurant_id?: string
-          branch_id?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
+          id?: string;
+          full_name?: string;
+          role?: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+          restaurant_id?: string;
+          created_at?: string;
+        };
+      };
+      branches: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          name: string;
+          address?: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          name: string;
+          address?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          name?: string;
+          address?: string;
+          created_at?: string;
+        };
+      };
+      tables: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          branch_id: string;
+          table_number: string;
+          capacity: number;
+          qr_code: string;
+          status: 'available' | 'occupied' | 'reserved';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          branch_id: string;
+          table_number: string;
+          capacity: number;
+          qr_code: string;
+          status?: 'available' | 'occupied' | 'reserved';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          branch_id?: string;
+          table_number?: string;
+          capacity?: number;
+          qr_code?: string;
+          status?: 'available' | 'occupied' | 'reserved';
+          created_at?: string;
+        };
+      };
+      menu_categories: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          name: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          name?: string;
+          created_at?: string;
+        };
+      };
+      menu_items: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          category_id?: string;
+          name: string;
+          description?: string;
+          price: number;
+          category: string;
+          image_url?: string;
+          available: boolean;
+          variants: any[];
+          add_ons: any[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          category_id?: string;
+          name: string;
+          description?: string;
+          price: number;
+          category: string;
+          image_url?: string;
+          available?: boolean;
+          variants?: any[];
+          add_ons?: any[];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          category_id?: string;
+          name?: string;
+          description?: string;
+          price?: number;
+          category?: string;
+          image_url?: string;
+          available?: boolean;
+          variants?: any[];
+          add_ons?: any[];
+          created_at?: string;
+        };
+      };
+      orders: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          table_id: string;
+          customer_name?: string;
+          customer_phone?: string;
+          items: any[];
+          total_amount: number;
+          status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'cancelled';
+          special_instructions?: string;
+          source: 'online' | 'pos' | 'phone';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          table_id: string;
+          customer_name?: string;
+          customer_phone?: string;
+          items: any[];
+          total_amount: number;
+          status?: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'cancelled';
+          special_instructions?: string;
+          source: 'online' | 'pos' | 'phone';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          table_id?: string;
+          customer_name?: string;
+          customer_phone?: string;
+          items?: any[];
+          total_amount?: number;
+          status?: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'cancelled';
+          special_instructions?: string;
+          source?: 'online' | 'pos' | 'phone';
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      bills: {
+        Row: {
+          id: string;
+          order_id: string;
+          restaurant_id: string;
+          subtotal: number;
+          cgst_amount: number;
+          sgst_amount: number;
+          total_amount: number;
+          payment_status: 'pending' | 'paid' | 'failed';
+          payment_method?: 'cash' | 'upi' | 'card';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          restaurant_id: string;
+          subtotal: number;
+          cgst_amount: number;
+          sgst_amount: number;
+          total_amount: number;
+          payment_status?: 'pending' | 'paid' | 'failed';
+          payment_method?: 'cash' | 'upi' | 'card';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          restaurant_id?: string;
+          subtotal?: number;
+          cgst_amount?: number;
+          sgst_amount?: number;
+          total_amount?: number;
+          payment_status?: 'pending' | 'paid' | 'failed';
+          payment_method?: 'cash' | 'upi' | 'card';
+          created_at?: string;
+        };
+      };
+      payments: {
+        Row: {
+          id: string;
+          order_id: string;
+          restaurant_id: string;
+          table_id: string;
+          customer_name: string;
+          utr_number: string;
+          amount: number;
+          status: 'pending' | 'verified' | 'failed';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          restaurant_id: string;
+          table_id: string;
+          customer_name: string;
+          utr_number: string;
+          amount: number;
+          status?: 'pending' | 'verified' | 'failed';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          restaurant_id?: string;
+          table_id?: string;
+          customer_name?: string;
+          utr_number?: string;
+          amount?: number;
+          status?: 'pending' | 'verified' | 'failed';
+          created_at?: string;
+        };
+      };
+      customers: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          name: string;
+          phone?: string;
+          email?: string;
+          total_orders: number;
+          total_spent: number;
+          last_visit: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          name: string;
+          phone?: string;
+          email?: string;
+          total_orders?: number;
+          total_spent?: number;
+          last_visit: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          name?: string;
+          phone?: string;
+          email?: string;
+          total_orders?: number;
+          total_spent?: number;
+          last_visit?: string;
+          created_at?: string;
+        };
+      };
+    };
+  };
 }

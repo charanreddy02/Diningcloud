@@ -3,18 +3,38 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toaster';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { DateRange } from 'react-day-picker';
+import { addDays } from 'date-fns';
+import { DatePickerWithRange } from '../../components/admin/DatePickerWithRange';
 
 type Order = any;
 
 const AnalyticsPage: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const { restaurantSlug } = useParams();
   const { toast } = useToast();
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  });
 
   useEffect(() => {
     fetchOrders();
   }, [restaurantSlug]);
+
+  useEffect(() => {
+    if (!date?.from || !date?.to) {
+      setFilteredOrders(allOrders);
+      return;
+    }
+    const filtered = allOrders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= date.from! && orderDate <= date.to!;
+    });
+    setFilteredOrders(filtered);
+  }, [date, allOrders]);
 
   const fetchOrders = async () => {
     if (!restaurantSlug) return;
@@ -25,7 +45,8 @@ const AnalyticsPage: React.FC = () => {
 
       const { data, error } = await supabase.from('orders').select('*').eq('restaurant_id', restaurant.id);
       if (error) throw error;
-      setOrders(data || []);
+      setAllOrders(data || []);
+      setFilteredOrders(data || []);
     } catch (error: any) {
       toast({ type: 'error', title: 'Error', description: 'Failed to fetch analytics data.' });
     } finally {
@@ -34,7 +55,7 @@ const AnalyticsPage: React.FC = () => {
   };
 
   // Process data for charts
-  const salesData = orders.reduce((acc, order) => {
+  const salesData = filteredOrders.reduce((acc, order) => {
     const date = new Date(order.created_at).toLocaleDateString();
     acc[date] = (acc[date] || 0) + order.total;
     return acc;
@@ -42,15 +63,16 @@ const AnalyticsPage: React.FC = () => {
 
   const chartSalesData = Object.entries(salesData).map(([name, sales]) => ({ name, sales }));
 
-  const topItemsData = orders.flatMap(o => o.items).reduce((acc, item) => {
+  const topItemsData = filteredOrders.flatMap(o => o.items).reduce((acc, item) => {
     acc[item.name] = (acc[item.name] || 0) + item.quantity;
     return acc;
   }, {} as { [key: string]: number });
 
   const chartTopItemsData = Object.entries(topItemsData).map(([name, quantity]) => ({ name, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
 
-  const sourceData = orders.reduce((acc, order) => {
-    acc[order.source] = (acc[order.source] || 0) + 1;
+  const sourceData = filteredOrders.reduce((acc, order) => {
+    const sourceName = order.source || 'Unknown';
+    acc[sourceName] = (acc[sourceName] || 0) + 1;
     return acc;
   }, {} as { [key: string]: number });
   
@@ -59,7 +81,10 @@ const AnalyticsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Analytics & Reports</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">Analytics & Reports</h2>
+        <DatePickerWithRange date={date} setDate={setDate} />
+      </div>
       {loading ? (
         <div>Loading analytics...</div>
       ) : (
