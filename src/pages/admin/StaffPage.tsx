@@ -51,7 +51,7 @@ const StaffPage: React.FC = () => {
         .single();
       
       if (findError || !userProfile) {
-        throw new Error(`User with email ${newStaff.email} not found. Please ask them to sign up for a DineCloud account first.`);
+        throw new Error(`User with email ${newStaff.email} not found. Please ask them to sign up for a BiteDesk account first.`);
       }
 
       if (userProfile.restaurant_id) {
@@ -111,7 +111,7 @@ const StaffPage: React.FC = () => {
         <button type="submit" disabled={isAdding} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 disabled:opacity-50">
           <Plus size={18} /> {isAdding ? 'Adding...' : 'Add Staff'}
         </button>
-        <p className="text-xs text-gray-500">Note: The user must have a DineCloud account registered with this email before you can add them as staff.</p>
+        <p className="text-xs text-gray-500">Note: The user must have a BiteDesk account registered with this email before you can add them as staff.</p>
       </form>
 
       <div className="bg-white rounded-lg shadow-sm border">

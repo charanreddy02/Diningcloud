@@ -9,6 +9,7 @@ export interface Database {
           owner_id: string;
           phone: string;
           address: string;
+          description?: string;
           gstin?: string;
           cgst_rate?: number;
           sgst_rate?: number;
@@ -25,6 +26,7 @@ export interface Database {
           owner_id: string;
           phone: string;
           address: string;
+          description?: string;
           gstin?: string;
           cgst_rate?: number;
           sgst_rate?: number;
@@ -41,6 +43,7 @@ export interface Database {
           owner_id?: string;
           phone?: string;
           address?: string;
+          description?: string;
           gstin?: string;
           cgst_rate?: number;
           sgst_rate?: number;
@@ -54,22 +57,25 @@ export interface Database {
       profiles: {
         Row: {
           id: string;
+          email: string;
           full_name: string;
-          role: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+          role: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier' | 'user';
           restaurant_id?: string;
           created_at: string;
         };
         Insert: {
           id: string;
+          email: string;
           full_name: string;
-          role: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+          role?: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier' | 'user';
           restaurant_id?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
+          email?: string;
           full_name?: string;
-          role?: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+          role?: 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier' | 'user';
           restaurant_id?: string;
           created_at?: string;
         };
@@ -100,52 +106,23 @@ export interface Database {
       tables: {
         Row: {
           id: string;
-          restaurant_id: string;
           branch_id: string;
-          table_number: string;
-          capacity: number;
-          qr_code: string;
+          table_number: number;
           status: 'available' | 'occupied' | 'reserved';
           created_at: string;
         };
         Insert: {
           id?: string;
-          restaurant_id: string;
           branch_id: string;
-          table_number: string;
-          capacity: number;
-          qr_code: string;
+          table_number: number;
           status?: 'available' | 'occupied' | 'reserved';
           created_at?: string;
         };
         Update: {
           id?: string;
-          restaurant_id?: string;
           branch_id?: string;
-          table_number?: string;
-          capacity?: number;
-          qr_code?: string;
+          table_number?: number;
           status?: 'available' | 'occupied' | 'reserved';
-          created_at?: string;
-        };
-      };
-      menu_categories: {
-        Row: {
-          id: string;
-          restaurant_id: string;
-          name: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          restaurant_id: string;
-          name: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          restaurant_id?: string;
-          name?: string;
           created_at?: string;
         };
       };
@@ -153,7 +130,6 @@ export interface Database {
         Row: {
           id: string;
           restaurant_id: string;
-          category_id?: string;
           name: string;
           description?: string;
           price: number;
@@ -167,7 +143,6 @@ export interface Database {
         Insert: {
           id?: string;
           restaurant_id: string;
-          category_id?: string;
           name: string;
           description?: string;
           price: number;
@@ -181,7 +156,6 @@ export interface Database {
         Update: {
           id?: string;
           restaurant_id?: string;
-          category_id?: string;
           name?: string;
           description?: string;
           price?: number;
@@ -197,12 +171,13 @@ export interface Database {
         Row: {
           id: string;
           restaurant_id: string;
-          table_id: string;
+          branch_id: string;
+          table_id?: string;
           customer_name?: string;
           customer_phone?: string;
           items: any[];
-          total_amount: number;
-          status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'cancelled';
+          total: number;
+          status: 'pending' | 'in_preparation' | 'ready' | 'served' | 'completed' | 'cancelled';
           special_instructions?: string;
           source: 'online' | 'pos' | 'phone';
           created_at: string;
@@ -211,26 +186,28 @@ export interface Database {
         Insert: {
           id?: string;
           restaurant_id: string;
-          table_id: string;
+          branch_id: string;
+          table_id?: string;
           customer_name?: string;
           customer_phone?: string;
           items: any[];
-          total_amount: number;
-          status?: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'cancelled';
+          total: number;
+          status?: 'pending' | 'in_preparation' | 'ready' | 'served' | 'completed' | 'cancelled';
           special_instructions?: string;
-          source: 'online' | 'pos' | 'phone';
+          source?: 'online' | 'pos' | 'phone';
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           restaurant_id?: string;
+          branch_id?: string;
           table_id?: string;
           customer_name?: string;
           customer_phone?: string;
           items?: any[];
-          total_amount?: number;
-          status?: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'cancelled';
+          total?: number;
+          status?: 'pending' | 'in_preparation' | 'ready' | 'served' | 'completed' | 'cancelled';
           special_instructions?: string;
           source?: 'online' | 'pos' | 'phone';
           created_at?: string;
@@ -245,8 +222,8 @@ export interface Database {
           subtotal: number;
           cgst_amount: number;
           sgst_amount: number;
-          total_amount: number;
-          payment_status: 'pending' | 'paid' | 'failed';
+          total: number;
+          status: 'pending' | 'paid' | 'failed';
           payment_method?: 'cash' | 'upi' | 'card';
           created_at: string;
         };
@@ -257,8 +234,8 @@ export interface Database {
           subtotal: number;
           cgst_amount: number;
           sgst_amount: number;
-          total_amount: number;
-          payment_status?: 'pending' | 'paid' | 'failed';
+          total: number;
+          status?: 'pending' | 'paid' | 'failed';
           payment_method?: 'cash' | 'upi' | 'card';
           created_at?: string;
         };
@@ -269,8 +246,8 @@ export interface Database {
           subtotal?: number;
           cgst_amount?: number;
           sgst_amount?: number;
-          total_amount?: number;
-          payment_status?: 'pending' | 'paid' | 'failed';
+          total?: number;
+          status?: 'pending' | 'paid' | 'failed';
           payment_method?: 'cash' | 'upi' | 'card';
           created_at?: string;
         };
@@ -280,7 +257,7 @@ export interface Database {
           id: string;
           order_id: string;
           restaurant_id: string;
-          table_id: string;
+          table_id?: string;
           customer_name: string;
           utr_number: string;
           amount: number;
@@ -291,7 +268,7 @@ export interface Database {
           id?: string;
           order_id: string;
           restaurant_id: string;
-          table_id: string;
+          table_id?: string;
           customer_name: string;
           utr_number: string;
           amount: number;

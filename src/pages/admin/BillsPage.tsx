@@ -48,7 +48,7 @@ const BillsPage: React.FC = () => {
             )
           )
         `)
-        .eq('orders.restaurant_id', restaurant.id)
+        .eq('restaurant_id', restaurant.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;

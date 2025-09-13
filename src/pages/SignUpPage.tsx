@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   CheckCircle 
 } from 'lucide-react';
+import BiteDeskLogo from '../components/ui/BiteDeskLogo';
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { ownerSignUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -73,7 +74,7 @@ const SignUpPage = () => {
     try {
       const restaurantSlug = generateSlug(formData.restaurantName);
       
-      const { error } = await signUp(formData.email, formData.password, {
+      const { error } = await ownerSignUp(formData.email, formData.password, {
         fullName: formData.fullName,
         restaurantName: formData.restaurantName,
         restaurantSlug,
@@ -85,7 +86,7 @@ const SignUpPage = () => {
         toast({
           type: 'error',
           title: 'Sign Up Failed',
-          description: error.message
+          description: (error as any).message
         });
         return;
       }
@@ -125,11 +126,8 @@ const SignUpPage = () => {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">D</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900">DineCloud</span>
+          <div className="flex justify-center mb-4">
+            <BiteDeskLogo />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Start Your Journey</h1>
           <p className="text-gray-600">Create your restaurant account in minutes</p>

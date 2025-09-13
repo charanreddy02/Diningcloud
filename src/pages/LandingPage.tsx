@@ -15,6 +15,7 @@ import {
   Shield,
   Zap
 } from 'lucide-react';
+import BiteDeskLogo from '../components/ui/BiteDeskLogo';
 
 const LandingPage = () => {
   const features = [
@@ -55,7 +56,7 @@ const LandingPage = () => {
       name: "Rajesh Kumar",
       business: "Spice Garden, Mumbai",
       rating: 5,
-      text: "DineCloud transformed our restaurant operations. Order accuracy improved by 40% and we saved 2 hours daily on manual processes."
+      text: "BiteDesk transformed our restaurant operations. Order accuracy improved by 40% and we saved 2 hours daily on manual processes."
     },
     {
       name: "Priya Sharma",
@@ -77,12 +78,7 @@ const LandingPage = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">D</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">DineCloud</span>
-            </div>
+            <BiteDeskLogo />
             <div className="flex items-center space-x-4">
               <Link to="/login" className="text-gray-600 hover:text-gray-900 font-medium">
                 Sign In
@@ -182,7 +178,7 @@ const LandingPage = () => {
               Everything You Need to Run Your Restaurant
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From contactless ordering to comprehensive analytics, DineCloud provides all the tools 
+              From contactless ordering to comprehensive analytics, BiteDesk provides all the tools 
               you need to deliver exceptional dining experiences.
             </p>
           </div>
@@ -208,7 +204,7 @@ const LandingPage = () => {
               Trusted by Restaurant Owners Across India
             </h2>
             <p className="text-xl text-gray-600">
-              See how DineCloud is helping restaurants increase efficiency and revenue
+              See how BiteDesk is helping restaurants increase efficiency and revenue
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -237,7 +233,7 @@ const LandingPage = () => {
             Ready to Transform Your Restaurant?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of restaurant owners who've already streamlined their operations with DineCloud
+            Join thousands of restaurant owners who've already streamlined their operations with BiteDesk
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
@@ -261,13 +257,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">D</span>
-                </div>
-                <span className="text-xl font-bold">DineCloud</span>
-              </div>
-              <p className="text-gray-400">
+              <BiteDeskLogo />
+              <p className="text-gray-400 mt-4">
                 Complete restaurant management solution for modern dining experiences.
               </p>
             </div>
@@ -297,7 +288,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 DineCloud. All rights reserved.</p>
+            <p>&copy; 2025 BiteDesk. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toaster';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import BiteDeskLogo from '../components/ui/BiteDeskLogo';
+import { supabase } from '../lib/supabase';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -72,11 +74,8 @@ const LoginPage = () => {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">D</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900">DineCloud</span>
+          <div className="flex justify-center mb-4">
+            <BiteDeskLogo />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-gray-600">Sign in to your restaurant dashboard</p>

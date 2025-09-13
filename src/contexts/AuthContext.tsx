@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { User, Session, AuthError, SignUpWithPasswordCredentials } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password:string, userData: any) => Promise<{ error: any }>;
+  ownerSignUp: (email: string, password:string, userData: any) => Promise<{ error: any }>;
+  staffSignUp: (email: string, password: string, userData: { fullName: string; phone: string; }) => Promise<{ error: any; }>;
   signIn: (email: string, password: string) => Promise<{ data: { user: User | null; session: Session | null; } | null; error: AuthError | null; }>;
   signOut: () => Promise<void>;
 }
@@ -27,14 +28,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
@@ -46,32 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, userData: any) => {
+  const ownerSignUp = async (email: string, password: string, userData: any) => {
     try {
-      // First, sign up the user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             fullName: userData.fullName,
-            role: 'owner', // Set role in metadata for the trigger
+            role: 'owner',
           }
         }
       });
 
-      if (signUpError) {
-        console.error('Signup error:', signUpError);
-        return { error: signUpError };
-      }
-      
-      if (!authData.user) {
-        const err = new Error("Signup succeeded but no user data was returned.");
-        console.error(err);
-        return { error: err };
-      }
+      if (signUpError) throw signUpError;
+      if (!authData.user) throw new Error("Signup succeeded but no user data was returned.");
 
-      // Second, create the restaurant entry
       const { data: newRestaurant, error: restaurantError } = await supabase
         .from('restaurants')
         .insert([{
@@ -84,38 +73,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('id')
         .single();
 
-      if (restaurantError || !newRestaurant) {
-        console.error('Restaurant creation error:', restaurantError);
-        return { error: restaurantError || new Error("Failed to create restaurant and get its ID.") };
-      }
+      if (restaurantError || !newRestaurant) throw restaurantError || new Error("Failed to create restaurant.");
 
-      // Third, create a default branch for the new restaurant
-      const { error: branchError } = await supabase
+      await supabase
         .from('branches')
-        .insert([{
-            restaurant_id: newRestaurant.id,
-            name: 'Main Branch'
-        }]);
+        .insert([{ restaurant_id: newRestaurant.id, name: 'Main Branch' }]);
 
-      if (branchError) {
-          console.error('Default branch creation error:', branchError);
-          return { error: branchError };
-      }
-
-      // Fourth, update the user's profile (created by a trigger) with the new restaurant_id
-      const { error: profileError } = await supabase
+      await supabase
         .from('profiles')
         .update({ restaurant_id: newRestaurant.id })
         .eq('id', authData.user.id);
 
-      if (profileError) {
-        console.error('Profile update error after signup:', profileError);
-      }
+      return { error: null };
+    } catch (error) {
+      console.error('Owner signup error:', error);
+      return { error };
+    }
+  };
 
+  const staffSignUp = async (email: string, password: string, userData: { fullName: string; phone: string; }) => {
+    try {
+      const credentials: SignUpWithPasswordCredentials = {
+        email,
+        password,
+        options: {
+          data: {
+            fullName: userData.fullName,
+            phone: userData.phone,
+            role: 'waiter', // Default role, owner can change later
+          }
+        }
+      };
+      const { error: signUpError } = await supabase.auth.signUp(credentials);
+
+      if (signUpError) throw signUpError;
+      
       return { error: null };
 
     } catch (error) {
-      console.error('Unexpected signup error:', error);
+      console.error('Staff signup error:', error);
       return { error };
     }
   };
@@ -130,16 +126,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Signout error:', error);
-    }
+    if (error) console.error('Signout error:', error);
   };
 
   const value = {
     user,
     session,
     loading,
-    signUp,
+    ownerSignUp,
+    staffSignUp,
     signIn,
     signOut
   };

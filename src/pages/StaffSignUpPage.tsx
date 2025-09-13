@@ -25,7 +25,7 @@ const StaffSignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { staffSignUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -61,10 +61,9 @@ const StaffSignUpPage = () => {
     }
 
     try {
-      const { error } = await signUp(formData.email, formData.password, {
+      const { error } = await staffSignUp(formData.email, formData.password, {
         fullName: formData.fullName,
-        phone: formData.phone,
-        role: 'waiter' // Default role, can be changed by restaurant owner
+        phone: formData.phone
       });
 
       if (error) {
