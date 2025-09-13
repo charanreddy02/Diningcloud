@@ -7,6 +7,7 @@ import { useToast } from '../components/ui/Toaster';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { numToWords } from 'num-to-words';
+import { Skeleton } from '../components/ui/skeleton';
 
 interface Order {
   id: string;
@@ -49,6 +50,7 @@ const BillPage: React.FC = () => {
   }, [orderId, slug]);
 
   const fetchOrderData = async () => {
+    setLoading(true);
     try {
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('restaurants')
@@ -79,110 +81,126 @@ const BillPage: React.FC = () => {
   };
 
   const generatePDF = () => {
-    if (!order || !restaurant) return;
+    if (!order || !restaurant) {
+        toast({ type: 'error', title: 'PDF Error', description: 'Missing order or restaurant data.' });
+        return;
+    }
 
-    const doc = new jsPDF();
-    const subtotal = order.total;
-    const cgstRate = restaurant.cgst_rate || 0;
-    const sgstRate = restaurant.sgst_rate || 0;
-    const cgstAmount = (subtotal * cgstRate) / 100;
-    const sgstAmount = (subtotal * sgstRate) / 100;
-    const grandTotal = subtotal + cgstAmount + sgstAmount;
-    const grandTotalInWords = numToWords(Math.round(grandTotal));
+    try {
+      const doc = new jsPDF();
+      const subtotal = order.total || 0;
+      const cgstRate = restaurant.cgst_rate || 0;
+      const sgstRate = restaurant.sgst_rate || 0;
+      const cgstAmount = (subtotal * cgstRate) / 100;
+      const sgstAmount = (subtotal * sgstRate) / 100;
+      const grandTotal = subtotal + cgstAmount + sgstAmount;
+      const grandTotalInWords = numToWords(Math.round(grandTotal));
 
-    // Header
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text(`🍴 ${restaurant.name}`, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(restaurant.address || '', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
-    if (restaurant.phone) doc.text(`Ph: ${restaurant.phone}`, doc.internal.pageSize.getWidth() / 2, 34, { align: 'center' });
-    if (restaurant.gstin) doc.text(`GSTIN: ${restaurant.gstin}`, doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
-    
-    doc.line(14, 45, 196, 45); // horizontal line
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text(`🍴 ${restaurant.name || ''}`, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(restaurant.address || '', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+      if (restaurant.phone) doc.text(`Ph: ${restaurant.phone}`, doc.internal.pageSize.getWidth() / 2, 34, { align: 'center' });
+      if (restaurant.gstin) doc.text(`GSTIN: ${restaurant.gstin}`, doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+      
+      doc.line(14, 45, 196, 45); // horizontal line
 
-    // Bill Details
-    doc.setFontSize(10);
-    doc.text(`Bill No: ${order.id.slice(0, 6).toUpperCase()}`, 14, 52);
-    doc.text(`Date: ${new Date(order.created_at).toLocaleDateString('en-GB')}`, 196, 52, { align: 'right' });
-    doc.text(`Table: ${table?.table_number || 'N/A'}`, 14, 58);
-    doc.text(`Customer: ${order.customer_name || 'Guest'}`, 196, 58, { align: 'right' });
+      // Bill Details
+      doc.setFontSize(10);
+      doc.text(`Bill No: ${order.id.slice(0, 6).toUpperCase()}`, 14, 52);
+      doc.text(`Date: ${new Date(order.created_at).toLocaleDateString('en-GB')}`, 196, 52, { align: 'right' });
+      doc.text(`Table: ${table?.table_number || 'N/A'}`, 14, 58);
+      doc.text(`Customer: ${order.customer_name || 'Guest'}`, 196, 58, { align: 'right' });
 
-    doc.line(14, 63, 196, 63);
+      doc.line(14, 63, 196, 63);
 
-    // Items Table
-    const tableData = order.items.map((item: any, index: number) => [
-      index + 1,
-      item.name + (item.variant ? ` (${item.variant.name})` : ''),
-      item.quantity,
-      item.price.toFixed(2),
-      (item.quantity * item.price).toFixed(2)
-    ]);
+      // Items Table
+      const tableData = (order.items || []).map((item: any, index: number) => {
+        const itemName = item.name || 'Unknown Item';
+        const variantName = item.variant?.name ? ` (${item.variant.name})` : '';
+        const qty = item.quantity || 1;
+        const rate = item.total || 0; // Use item.total as it includes variant/add-on pricing
+        const amount = qty * rate;
 
-    (doc as any).autoTable({
-      head: [['S.No', 'Item', 'Qty', 'Rate', 'Amount']],
-      body: tableData,
-      startY: 65,
-      theme: 'plain',
-      headStyles: { fontStyle: 'bold', halign: 'center' },
-      styles: { fontSize: 10, cellPadding: 1.5 },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 15 },
-        1: { halign: 'left', cellWidth: 80 },
-        2: { halign: 'center' },
-        3: { halign: 'right' },
-        4: { halign: 'right' },
+        return [
+          index + 1,
+          `${itemName}${variantName}`,
+          qty,
+          rate.toFixed(2),
+          amount.toFixed(2)
+        ];
+      });
+
+      (doc as any).autoTable({
+        head: [['S.No', 'Item', 'Qty', 'Rate', 'Amount']],
+        body: tableData,
+        startY: 65,
+        theme: 'plain',
+        headStyles: { fontStyle: 'bold', halign: 'center' },
+        styles: { fontSize: 10, cellPadding: 1.5 },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 15 },
+          1: { halign: 'left', cellWidth: 80 },
+          2: { halign: 'center' },
+          3: { halign: 'right' },
+          4: { halign: 'right' },
+        }
+      });
+
+      let finalY = (doc as any).lastAutoTable.finalY;
+      doc.line(14, finalY + 2, 196, finalY + 2);
+
+      // Totals
+      let yPos = finalY + 8;
+      const rightAlign = 196;
+      const leftAlign = 130;
+      doc.setFontSize(10);
+      doc.text('Subtotal:', leftAlign, yPos, { align: 'right' });
+      doc.text(`₹${subtotal.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
+      
+      if (cgstAmount > 0) {
+          yPos += 6;
+          doc.text(`CGST @ ${cgstRate}%:`, leftAlign, yPos, { align: 'right' });
+          doc.text(`₹${cgstAmount.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
       }
-    });
+      if (sgstAmount > 0) {
+          yPos += 6;
+          doc.text(`SGST @ ${sgstRate}%:`, leftAlign, yPos, { align: 'right' });
+          doc.text(`₹${sgstAmount.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
+      }
+      
+      doc.line(130, yPos + 3, 196, yPos + 3);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Grand Total:', leftAlign, yPos, { align: 'right' });
+      doc.text(`₹${grandTotal.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
+      
+      yPos += 8;
+      doc.line(14, yPos, 196, yPos);
+      
+      // Amount in words
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Amount in Words: ${grandTotalInWords.charAt(0).toUpperCase() + grandTotalInWords.slice(1)} Only`, 14, yPos + 6);
+      yPos += 10;
+      doc.line(14, yPos, 196, yPos);
 
-    let finalY = (doc as any).lastAutoTable.finalY;
-    doc.line(14, finalY + 2, 196, finalY + 2);
+      // Footer
+      doc.setFontSize(10);
+      doc.text('Thank you for dining with us! Visit Again 🙏', doc.internal.pageSize.getWidth() / 2, yPos + 8, { align: 'center' });
 
-    // Totals
-    let yPos = finalY + 8;
-    const rightAlign = 196;
-    const leftAlign = 130;
-    doc.setFontSize(10);
-    doc.text('Subtotal:', leftAlign, yPos, { align: 'right' });
-    doc.text(`₹${subtotal.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
-    
-    if (cgstAmount > 0) {
-        yPos += 6;
-        doc.text(`CGST @ ${cgstRate}%:`, leftAlign, yPos, { align: 'right' });
-        doc.text(`₹${cgstAmount.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
+      doc.save(`bill-${order.id.slice(0, 8)}.pdf`);
+      toast({ type: 'success', title: 'PDF Downloaded' });
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      toast({ type: 'error', title: 'PDF Error', description: 'Could not generate the PDF.' });
     }
-    if (sgstAmount > 0) {
-        yPos += 6;
-        doc.text(`SGST @ ${sgstRate}%:`, leftAlign, yPos, { align: 'right' });
-        doc.text(`₹${sgstAmount.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
-    }
-    
-    doc.line(130, yPos + 3, 196, yPos + 3);
-    yPos += 8;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('Grand Total:', leftAlign, yPos, { align: 'right' });
-    doc.text(`₹${grandTotal.toFixed(2)}`, rightAlign, yPos, { align: 'right' });
-    
-    yPos += 8;
-    doc.line(14, yPos, 196, yPos);
-    
-    // Amount in words
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text(`Amount in Words: ${grandTotalInWords.charAt(0).toUpperCase() + grandTotalInWords.slice(1)} Only`, 14, yPos + 6);
-    yPos += 10;
-    doc.line(14, yPos, 196, yPos);
-
-    // Footer
-    doc.setFontSize(10);
-    doc.text('Thank you for dining with us! Visit Again 🙏', doc.internal.pageSize.getWidth() / 2, yPos + 8, { align: 'center' });
-
-    doc.save(`bill-${order.id.slice(0, 8)}.pdf`);
-    toast({ type: 'success', title: 'PDF Downloaded' });
   };
 
   const getStatusColor = (status: string) => {
@@ -205,8 +223,18 @@ const BillPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b"><div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4"><Skeleton className="h-8 w-1/3" /></div></header>
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden p-6 space-y-6">
+            <div className="flex justify-between">
+              <Skeleton className="h-12 w-1/2" />
+              <Skeleton className="h-8 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </main>
       </div>
     );
   }
@@ -225,7 +253,7 @@ const BillPage: React.FC = () => {
     );
   }
 
-  const subtotal = order.total;
+  const subtotal = order.total || 0;
   const cgstAmount = (subtotal * (restaurant.cgst_rate || 0)) / 100;
   const sgstAmount = (subtotal * (restaurant.sgst_rate || 0)) / 100;
   const grandTotal = subtotal + cgstAmount + sgstAmount;
@@ -278,13 +306,13 @@ const BillPage: React.FC = () => {
             <div className="border-t border-b py-6">
               <h3 className="font-medium text-gray-900 mb-4">Order Items</h3>
               <div className="space-y-4">
-                {order.items.map((item: any, index: number) => (
+                {(order.items || []).map((item: any, index: number) => (
                   <div key={index} className="flex justify-between items-start">
                     <div>
                       <h4 className="font-medium text-gray-900">{item.name} <span className="text-gray-500">× {item.quantity}</span></h4>
                       {item.variant && <p className="text-sm text-gray-600">Variant: {item.variant.name}</p>}
                     </div>
-                    <p className="font-medium text-gray-900">₹{item.total.toFixed(2)}</p>
+                    <p className="font-medium text-gray-900">₹{(item.total || 0).toFixed(2)}</p>
                   </div>
                 ))}
               </div>

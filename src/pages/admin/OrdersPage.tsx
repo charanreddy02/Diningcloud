@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toaster';
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
+import { Skeleton } from '../../components/ui/skeleton';
 
 type Order = any; // Replace with a proper type from your database types
 
@@ -21,9 +22,7 @@ const OrdersPage: React.FC = () => {
     const channel = supabase
       .channel('public:orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-        console.log('Change received!', payload);
-        fetchOrders(); // Refetch on any change
-        toast({type: 'info', title: 'New Update', description: 'Order list has been updated.'})
+        fetchOrders();
       })
       .subscribe();
 
@@ -45,6 +44,7 @@ const OrdersPage: React.FC = () => {
 
   const fetchOrders = async () => {
     if (!restaurantSlug) return;
+    setLoading(true);
     try {
       const { data: restaurant } = await supabase.from('restaurants').select('id').eq('slug', restaurantSlug).single();
       if (!restaurant) throw new Error("Restaurant not found");
@@ -95,6 +95,15 @@ const OrdersPage: React.FC = () => {
 
   const orderStatuses = ['pending', 'in_preparation', 'ready', 'served', 'completed', 'cancelled'];
 
+  const TableRowSkeleton = () => (
+    <tr>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-10 w-32 rounded-md" /></td>
+    </tr>
+  );
+
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
       <div className="flex justify-between items-center mb-4">
@@ -111,7 +120,24 @@ const OrdersPage: React.FC = () => {
         </div>
       </div>
       {loading ? (
-        <div className="text-center py-10">Loading orders...</div>
+        <div className="overflow-x-auto">
+            <table className="min-w-full">
+                <thead>
+                    <tr>
+                        <th className="px-6 py-3 w-1/4"></th>
+                        <th className="px-6 py-3 w-1/4"></th>
+                        <th className="px-6 py-3 w-1/4"></th>
+                        <th className="px-6 py-3 w-1/4"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                </tbody>
+            </table>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">

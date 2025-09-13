@@ -69,7 +69,7 @@ const AdminDashboard: React.FC = () => {
           toast({
             type: 'info',
             title: 'New Order Received!',
-            description: `Order from Table #${newOrder.table_id ? '...' : newOrder.customer_name}. Total: ₹${newOrder.total}`
+            description: `Order #${newOrder.id.slice(0,6)} from ${newOrder.customer_name || 'Guest'}. Total: ₹${newOrder.total}`
           });
         }
       })
